@@ -1,4 +1,4 @@
- dkms remove -m snd-hda-codec-realtek -v 1.1 --all
-dkms add -m snd-hda-codec-realtek -v 1.1
-dkms build -m snd-hda-codec-realtek -v 1.1
-dkms install  -m snd-hda-codec-realtek -v 1.1
+dkms remove  -m alsa-hda-backport  -v 1.3 --all
+dkms add -m alsa-hda-backport  -v 1.3
+dkms build -m alsa-hda-backport  -v 1.3
+#dkms install -m alsa-hda-backport  -v 1.3

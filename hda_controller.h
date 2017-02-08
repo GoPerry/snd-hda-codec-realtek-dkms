@@ -15,6 +15,7 @@
 #ifndef __SOUND_HDA_CONTROLLER_H
 #define __SOUND_HDA_CONTROLLER_H
 
+#include <linux/timecounter.h>
 #include <linux/interrupt.h>
 #include <sound/core.h>
 #include <sound/pcm.h>
@@ -157,6 +158,9 @@ struct azx {
 	unsigned int align_buffer_size:1;
 	unsigned int region_requested:1;
 	unsigned int disabled:1; /* disabled by vga_switcheroo */
+
+	/* GTS present */
+	unsigned int gts_present:1;
 
 #ifdef CONFIG_SND_HDA_DSP_LOADER
 	struct azx_dev saved_azx_dev;

@@ -1,0 +1,252 @@
+diff -Naur hda.old/backport.h hda/backport.h
+--- hda.old/backport.h	1970-01-01 01:00:00.000000000 +0100
++++ hda/backport.h	2011-09-15 03:21:38.504966654 +0100
+@@ -0,0 +1,19 @@
++#ifndef __BACKPORT_H__
++#define __BACKPORT_H__
++
++#define TLV_DB_SCALE_MUTE       0x10000
++#define SNDRV_PCM_INFO_NO_PERIOD_WAKEUP 0x00800000      /* period wakeup can be disabled */
++
++/* 
++ * CONFIG_SND_HDA_INPUT_BEEP_MODE:
++ * Digital beep registration mode (0=off, 1=on, 2=mute sw on/off)
++ * 
++ * Set 0 to disable the digital beep interface for HD-audio by default.
++ * Set 1 to always enable the digital beep interface for HD-audio by
++ * default. Set 2 to control the beep device registration to input
++ * layer using a "Beep Switch" in mixer applications. 
++ */
++#define CONFIG_SND_HDA_INPUT_BEEP_MODE 2
++
++
++#endif // __BACKPORT_H__
+diff -Naur hda.old/dkms.conf hda/dkms.conf
+--- hda.old/dkms.conf	1970-01-01 01:00:00.000000000 +0100
++++ hda/dkms.conf	2011-09-15 04:19:02.072395905 +0100
+@@ -0,0 +1,30 @@
++PACKAGE_VERSION="20110915"
++PACKAGE_NAME="alsa_hda_backport"
++AUTOINSTALL="yes"
++CLEAN="make clean"
++MAKE[0]="make"
++
++BUILT_MODULE_NAME[0]="snd-hda-codec-analog"
++DEST_MODULE_LOCATION[0]="/updates/kernel"
++BUILT_MODULE_NAME[1]="snd-hda-codec-ca0110"
++DEST_MODULE_LOCATION[1]="/updates/kernel"
++BUILT_MODULE_NAME[2]="snd-hda-codec-cirrus"
++DEST_MODULE_LOCATION[2]="/updates/kernel"
++BUILT_MODULE_NAME[3]="snd-hda-codec-cmedia"
++DEST_MODULE_LOCATION[3]="/updates/kernel"
++BUILT_MODULE_NAME[4]="snd-hda-codec-conexant"
++DEST_MODULE_LOCATION[4]="/updates/kernel"
++BUILT_MODULE_NAME[5]="snd-hda-codec-hdmi"
++DEST_MODULE_LOCATION[5]="/updates/kernel"
++BUILT_MODULE_NAME[6]="snd-hda-codec-idt"
++DEST_MODULE_LOCATION[6]="/updates/kernel"
++BUILT_MODULE_NAME[7]="snd-hda-codec"
++DEST_MODULE_LOCATION[7]="/updates/kernel"
++BUILT_MODULE_NAME[8]="snd-hda-codec-realtek"
++DEST_MODULE_LOCATION[8]="/updates/kernel"
++BUILT_MODULE_NAME[9]="snd-hda-codec-si3054"
++DEST_MODULE_LOCATION[9]="/updates/kernel"
++BUILT_MODULE_NAME[10]="snd-hda-codec-via"
++DEST_MODULE_LOCATION[10]="/updates/kernel"
++BUILT_MODULE_NAME[11]="snd-hda-intel"
++DEST_MODULE_LOCATION[11]="/updates/kernel"
+diff -Naur hda.old/hda_codec.c hda/hda_codec.c
+--- hda.old/hda_codec.c	2011-09-14 23:05:36.000000000 +0100
++++ hda/hda_codec.c	2011-09-15 03:22:06.328822404 +0100
+@@ -34,8 +34,10 @@
+ #include "hda_beep.h"
+ #include <sound/hda_hwdep.h>
+ 
+-#define CREATE_TRACE_POINTS
+-#include "hda_trace.h"
++#include "backport.h"
++
++//#define CREATE_TRACE_POINTS
++//#include "hda_trace.h"
+ 
+ /*
+  * vendor / preset table
+@@ -211,11 +213,11 @@
+  again:
+ 	snd_hda_power_up(codec);
+ 	mutex_lock(&bus->cmd_mutex);
+-	trace_hda_send_cmd(codec, cmd);
++	//trace_hda_send_cmd(codec, cmd);
+ 	err = bus->ops.command(bus, cmd);
+ 	if (!err && res) {
+ 		*res = bus->ops.get_response(bus, codec->addr);
+-		trace_hda_get_response(codec, *res);
++		//trace_hda_get_response(codec, *res);
+ 	}
+ 	mutex_unlock(&bus->cmd_mutex);
+ 	snd_hda_power_down(codec);
+@@ -223,7 +225,7 @@
+ 		if (bus->response_reset) {
+ 			snd_printd("hda_codec: resetting BUS due to "
+ 				   "fatal communication error\n");
+-			trace_hda_bus_reset(bus);
++			//trace_hda_bus_reset(bus);
+ 			bus->ops.bus_reset(bus);
+ 		}
+ 		goto again;
+@@ -610,7 +612,7 @@
+ 	struct hda_bus_unsolicited *unsol;
+ 	unsigned int wp;
+ 
+-	trace_hda_unsol_event(bus, res, res_ex);
++	//trace_hda_unsol_event(bus, res, res_ex);
+ 	unsol = bus->unsol;
+ 	if (!unsol)
+ 		return 0;
+@@ -4114,7 +4116,7 @@
+ 		return;
+ 	}
+ 
+-	trace_hda_power_down(codec);
++	//trace_hda_power_down(codec);
+ 	hda_call_codec_suspend(codec);
+ 	if (bus->ops.pm_notify)
+ 		bus->ops.pm_notify(bus);
+@@ -4153,7 +4155,7 @@
+ 	if (codec->power_on || codec->power_transition)
+ 		return;
+ 
+-	trace_hda_power_up(codec);
++	//trace_hda_power_up(codec);
+ 	snd_hda_update_power_acct(codec);
+ 	codec->power_on = 1;
+ 	codec->power_jiffies = jiffies;
+diff -Naur hda.old/hda_hwdep.c hda/hda_hwdep.c
+--- hda.old/hda_hwdep.c	2011-09-14 23:05:36.000000000 +0100
++++ hda/hda_hwdep.c	2011-09-15 01:07:48.827636669 +0100
+@@ -427,6 +427,14 @@
+ 
+ #define MAX_HINTS	1024
+ 
++static char *skip_spaces(const char *str)
++{
++        while (isspace(*str))
++                ++str;
++        return (char *)str;
++}
++
++
+ static int parse_hints(struct hda_codec *codec, const char *buf)
+ {
+ 	char *key, *val;
+diff -Naur hda.old/hda_intel.c hda/hda_intel.c
+--- hda.old/hda_intel.c	2011-09-14 23:05:36.000000000 +0100
++++ hda/hda_intel.c	2011-09-15 03:22:18.994043500 +0100
+@@ -50,6 +50,7 @@
+ #include <sound/initval.h>
+ #include "hda_codec.h"
+ 
++#include "backport.h"
+ 
+ static int index[SNDRV_CARDS] = SNDRV_DEFAULT_IDX;
+ static char *id[SNDRV_CARDS] = SNDRV_DEFAULT_STR;
+@@ -1281,7 +1282,7 @@
+ 		} else {
+ 			ofs = setup_bdle(substream, azx_dev,
+ 					 &bdl, ofs, pos_adj,
+-					 !substream->runtime->no_period_wakeup);
++					 1);
+ 			if (ofs < 0)
+ 				goto error;
+ 		}
+@@ -1294,7 +1295,7 @@
+ 		else
+ 			ofs = setup_bdle(substream, azx_dev, &bdl, ofs,
+ 					 period_bytes,
+-					 !substream->runtime->no_period_wakeup);
++					 1);
+ 		if (ofs < 0)
+ 			goto error;
+ 	}
+@@ -2107,8 +2108,8 @@
+ 	struct snd_pcm *pcm;
+ 	struct azx_pcm *apcm;
+ 	int pcm_dev = cpcm->device;
+-	unsigned int size;
+ 	int s, err;
++	size_t prealloc_min = 64*1024;  /* 64KB */
+ 
+ 	if (pcm_dev >= HDA_MAX_PCMS) {
+ 		snd_printk(KERN_ERR SFX "Invalid PCM device number %d\n",
+@@ -2143,12 +2144,13 @@
+ 			snd_pcm_set_ops(pcm, s, &azx_pcm_ops);
+ 	}
+ 	/* buffer pre-allocation */
+-	size = CONFIG_SND_HDA_PREALLOC_SIZE * 1024;
+-	if (size > MAX_PREALLOC_SIZE)
+-		size = MAX_PREALLOC_SIZE;
++        if (pcm->dev_class == SNDRV_PCM_CLASS_GENERIC &&
++            chip->pci->dma_mask >= DMA_32BIT_MASK)
++                prealloc_min = 4 * 1024 * 1024; /* 4MB */
++
+ 	snd_pcm_lib_preallocate_pages_for_all(pcm, SNDRV_DMA_TYPE_DEV_SG,
+ 					      snd_dma_pci_data(chip->pci),
+-					      size, MAX_PREALLOC_SIZE);
++					      prealloc_min, 32 * 1024 * 1024);
+ 	return 0;
+ }
+ 
+diff -Naur hda.old/Makefile hda/Makefile
+--- hda.old/Makefile	2011-09-14 23:05:36.000000000 +0100
++++ hda/Makefile	2011-09-15 04:18:54.368395863 +0100
+@@ -1,3 +1,5 @@
++# Modified makefile sourced from linux-src/sound/pci/hda
++
+ snd-hda-intel-objs := hda_intel.o
+ 
+ snd-hda-codec-y := hda_codec.o
+@@ -7,7 +9,7 @@
+ snd-hda-codec-$(CONFIG_SND_HDA_INPUT_BEEP) += hda_beep.o
+ 
+ # for trace-points
+-CFLAGS_hda_codec.o := -I$(src)
++#CFLAGS_hda_codec.o := -I$(src)
+ 
+ snd-hda-codec-realtek-objs :=	patch_realtek.o
+ snd-hda-codec-cmedia-objs :=	patch_cmedia.o
+@@ -55,11 +57,21 @@
+ ifdef CONFIG_SND_HDA_CODEC_VIA
+ obj-$(CONFIG_SND_HDA_INTEL) += snd-hda-codec-via.o
+ endif
+-ifdef CONFIG_SND_HDA_CODEC_HDMI
++#ifdef CONFIG_SND_HDA_CODEC_HDMI
+ obj-$(CONFIG_SND_HDA_INTEL) += snd-hda-codec-hdmi.o
+-endif
++#endif
+ 
+ # this must be the last entry after codec drivers;
+ # otherwise the codec patches won't be hooked before the PCI probe
+ # when built in kernel
+ obj-$(CONFIG_SND_HDA_INTEL) += snd-hda-intel.o
++
++
++# Use the Linux 2.6 build system to compile the modules.
++
++KVERSION = $(shell uname -r)
++all:
++	make -C /lib/modules/$(KVERSION)/build M=$(PWD) modules
++clean:
++	make -C /lib/modules/$(KVERSION)/build M=$(PWD) clean
++
+diff -Naur hda.old/patch_sigmatel.c hda/patch_sigmatel.c
+--- hda.old/patch_sigmatel.c	2011-09-14 23:05:36.000000000 +0100
++++ hda/patch_sigmatel.c	2011-09-15 03:22:35.900395921 +0100
+@@ -37,6 +37,8 @@
+ #include "hda_local.h"
+ #include "hda_beep.h"
+ 
++#include "backport.h"
++
+ enum {
+ 	STAC_VREF_EVENT	= 1,
+ 	STAC_INSERT_EVENT,
